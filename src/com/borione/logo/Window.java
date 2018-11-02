@@ -42,7 +42,6 @@ public class Window extends JFrame {
 				t = new Turtle(g, canvasPanel.getWidth(), canvasPanel.getHeight());				
 				String text = commands.getText();
 	        	Parser.parse(t, text);
-
 			}
 		};
 		super.addComponentListener(new ComponentAdapter() {
@@ -71,7 +70,6 @@ public class Window extends JFrame {
 
 	        @Override
 	        public void changedUpdate(DocumentEvent arg0) {
-
 	        }
 	    });
 		scroll.setViewportView(commands);		
@@ -92,5 +90,4 @@ public class Window extends JFrame {
 			}
 		});
 	}
-
 }

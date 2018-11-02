@@ -132,41 +132,47 @@ public class Parser {
 	}
 	
 	public static void parse(Turtle t, String text) {
-		String regex = "(((?<cmd1p>fd|forward|bk|backwaeds|rt|right|lt|left|cr|color) (?<p1>\\w+))(\\s|$)|(?<cmd0p>hm|home|cl|clean|cs|clearscreen|ht|hideturtle|st|showturtle|pu|penup|pd|pendown)|((?<repeat>rp|repeat) (?<nrep>\\d+) \\[(?<pattern>.*)\\]))";
+		Map<String, String> procedures = new HashMap<>();
 		
-		Pattern p = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+		String regex = "((TO (?<declProc>\\w+)(\\s|$)(?<procBody>.+)END)|" +
+						"((?<cmd1p>\\b(fd|forward|bk|backwards|rt|right|lt|left|cr|color)\\b) (?<p1>\\w+))(\\s|$)|" +
+						"(?<cmd0p>\\b(hm|home|cl|clean|cs|clearscreen|ht|hideturtle|st|showturtle|pu|penup|pd|pendown)\\b)|" +
+						"((?<repeat>\\b(rp|repeat)\\b) (?<nrep>\\d+) \\[(?<pattern>.*)\\])|" +
+						"(^(?<procName>\\w+\\b)$))";
+		
+		Pattern p = Pattern.compile(regex, Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL);
 		Matcher m = p.matcher(text);
 		
 		while(m.find()) {
+
+			String declProc = m.group("declProc");
 			String cmd1p = m.group("cmd1p");
 			String cmd0p = m.group("cmd0p");
 			String repeat = m.group("repeat");
+			String procName = m.group("procName");
 			
-			if(cmd1p != null) {
+			if(declProc != null) {
+				String procBody = m.group("procBody");
+				procedures.put(declProc, procBody);
+			} else if(cmd1p != null) {
 				String n = m.group("p1");
 				try {
 					actions.get(cmd1p.toLowerCase()).invoke(null, t, n);
 				} catch (IllegalAccessException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				} catch (IllegalArgumentException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				} catch (InvocationTargetException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			} else if(cmd0p != null) {
 				try {
 					actions.get(cmd0p).invoke(null, t);
 				} catch (IllegalAccessException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				} catch (IllegalArgumentException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				} catch (InvocationTargetException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			} else if(repeat != null) {
@@ -175,15 +181,14 @@ public class Parser {
 				try {
 					actions.get(repeat).invoke(null, t, n, pattern);
 				} catch (IllegalAccessException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				} catch (IllegalArgumentException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				} catch (InvocationTargetException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
+			} else if(procName != null) {
+				Parser.parse(t, procedures.get(procName));
 			}
 		}
 		
