@@ -46,12 +46,20 @@ public class Turtle {
 		// XXX: figure it out
 	}
 	
+	public void clean() {
+		// XXX: figure it out
+	}
+	
 	public void setWriting(boolean w) {
 		this.writing = w;
 	}
 	
 	public void setShowHead(boolean s) {
 		this.showHead = s;
+	}
+
+	public boolean isShowHead() {
+		return this.showHead;
 	}
 
 }

@@ -1,14 +1,20 @@
 package com.borione.logo;
 
 import java.awt.BorderLayout;
+import java.awt.EventQueue;
 import java.awt.Graphics;
 import java.awt.GridLayout;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.ScrollPaneConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 public class Window extends JFrame {
 	
@@ -17,6 +23,8 @@ public class Window extends JFrame {
 	private JScrollPane scroll;
 	private JTextArea commands;
 	private JPanel canvasPanel;
+	
+	Turtle t;
 	
 	public Window() {
 		super("LOGO");
@@ -32,14 +40,17 @@ public class Window extends JFrame {
 			protected void paintComponent(Graphics g) {
 				super.paintComponent(g);
 				
-				// TODO: add real time parsing from text in text area
-				Turtle t = new Turtle(g, canvasPanel.getWidth(), canvasPanel.getHeight());
-				t.move(100);
-				t.rotate(90);
-				t.drawHead();
+				t = new Turtle(g, canvasPanel.getWidth(), canvasPanel.getHeight());				
+				String text = commands.getText();
+	        	Parser.parse(t, text);
 
 			}
 		};
+		super.addComponentListener(new ComponentAdapter() {
+		    public void componentResized(ComponentEvent componentEvent) {
+		        canvasPanel.repaint();
+		    }
+		});
 		getContentPane().add(scroll);
 		getContentPane().add(canvasPanel);
 		
@@ -47,14 +58,40 @@ public class Window extends JFrame {
 		commands.setTabSize(4);
 		commands.setWrapStyleWord(true);
 		commands.setLineWrap(true);
+		commands.getDocument().addDocumentListener(new DocumentListener() {
+
+	        @Override
+	        public void removeUpdate(DocumentEvent e) {
+	        	canvasPanel.repaint();
+	        }
+
+	        @Override
+	        public void insertUpdate(DocumentEvent e) {
+	        	canvasPanel.repaint();
+	        }
+
+	        @Override
+	        public void changedUpdate(DocumentEvent arg0) {
+
+	        }
+	    });
 		scroll.setViewportView(commands);		
 		
 //		super.pack();
-		super.setVisible(true);		
+//		super.setVisible(true);		
 	}
 	
 	public static void main(String[] args) {
-		Window w = new Window();
+		EventQueue.invokeLater(new Runnable() {
+			public void run() {
+				try {
+					Window frame = new Window();
+					frame.setVisible(true);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
 	}
 
 }
