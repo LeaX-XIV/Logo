@@ -1,5 +1,6 @@
 package com.borione.logo;
 
+import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 
@@ -27,7 +28,7 @@ public class Turtle {
 	
 	public void drawHead() {
 		if(showHead)
-			g.drawPolygon(new int[] {0, -6, 6}, new int[] {3, -3, -3}, 3);
+			g.drawPolygon(new int[] {0, -5, 0, 5}, new int[] {7, -5, 0, -5}, 4);
 	}
 	
 	public void move(int y) {
@@ -36,8 +37,6 @@ public class Turtle {
 		g.translate(0, y);
 	}
 	
-	// right +
-	// left -
 	public void rotate(int degrees) {
 		g.rotate(Math.toRadians(degrees));
 	}
@@ -60,6 +59,10 @@ public class Turtle {
 
 	public boolean isShowHead() {
 		return this.showHead;
+	}
+	
+	public void setTrailColor(Color c) {
+		this.g.setColor(c);
 	}
 
 }
