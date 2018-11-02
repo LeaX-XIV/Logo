@@ -1,7 +1,6 @@
 package com.borione.logo;
 
 import java.awt.BorderLayout;
-import java.awt.Canvas;
 import java.awt.Graphics;
 import java.awt.GridLayout;
 
@@ -18,7 +17,6 @@ public class Window extends JFrame {
 	private JScrollPane scroll;
 	private JTextArea commands;
 	private JPanel canvasPanel;
-	private Canvas canvas;
 	
 	public Window() {
 		super("LOGO");
@@ -35,7 +33,11 @@ public class Window extends JFrame {
 				super.paintComponent(g);
 				
 				// TODO: add real time parsing from text in text area
-				g.drawLine(0, 0, 100, 100);
+				Turtle t = new Turtle(g, canvasPanel.getWidth(), canvasPanel.getHeight());
+				t.move(100);
+				t.rotate(90);
+				t.drawHead();
+
 			}
 		};
 		getContentPane().add(scroll);
