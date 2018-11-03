@@ -137,7 +137,7 @@ public class Parser {
 		Map<String, String> procedures = new HashMap<>();
 		Map<String, List<String>> procArgs = new HashMap<>();
 		
-		String regex = "((TO (?<declProc>\\w+)(?<argNames>(\\s*\\:\\w+\\b)*)(\\s|$)(?<procBody>.+)END)|" +
+			String regex = "((TO (?<declProc>\\w+)\\s*(?<argNames>(\\s*\\:\\w+\\b)*)(\\s|$)(?<procBody>.+)END)|" +
 						"((?<cmd1p>\\b(fd|forward|bk|backwards|rt|right|lt|left|cr|color)\\b)\\s+(?<p1>\\w+))(\\s|$)|" +
 						"(?<cmd0p>\\b(hm|home|cl|clean|cs|clearscreen|ht|hideturtle|st|showturtle|pu|penup|pd|pendown)\\b)|" +
 						"((?<repeat>\\b(rp|repeat)\\b)\\s+(?<nrep>\\d+)\\s+\\[(?<pattern>.*)\\])|" +
@@ -157,7 +157,7 @@ public class Parser {
 			if(declProc != null) {
 				String argNames = m.group("argNames");
 				String procBody = m.group("procBody");
-				procArgs.put(declProc, Arrays.asList(argNames.split("\\b[^\\:\\w+]\\b")));
+				procArgs.put(declProc, Arrays.asList(argNames.split("\\s")));
 				procedures.put(declProc, procBody);
 				
 			} else if(cmd1p != null) {
@@ -212,7 +212,7 @@ public class Parser {
 				for(int i = 0; i < argNames.size(); i++) {
 					String argName = argNames.get(i);
 					String argValue = arguments[i];
-					procBody = procBody.replaceAll("\\b" + argName + "\\b", " " + argValue);
+					procBody = procBody.replaceAll(argName, " " + argValue + " ");
 				}
 				Parser.parse(t, procBody);
 				
