@@ -1,4 +1,4 @@
-package com.borione.logo;
+package com.leax_xiv.logo;
 
 import java.awt.BorderLayout;
 import java.awt.EventQueue;
