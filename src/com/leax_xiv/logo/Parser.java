@@ -1,9 +1,11 @@
-package com.borione.logo;
+package com.leax_xiv.logo;
 
 import java.awt.Color;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -132,41 +134,51 @@ public class Parser {
 	}
 	
 	public static void parse(Turtle t, String text) {
-		String regex = "(((?<cmd1p>fd|forward|bk|backwaeds|rt|right|lt|left|cr|color) (?<p1>\\w+))(\\s|$)|(?<cmd0p>hm|home|cl|clean|cs|clearscreen|ht|hideturtle|st|showturtle|pu|penup|pd|pendown)|((?<repeat>rp|repeat) (?<nrep>\\d+) \\[(?<pattern>.*)\\]))";
+		Map<String, String> procedures = new HashMap<>();
+		Map<String, List<String>> procArgs = new HashMap<>();
 		
-		Pattern p = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+			String regex = "((TO (?<declProc>\\w+)\\s*(?<argNames>(\\s*\\:\\w+\\b)*)(\\s|$)(?<procBody>.+)END)|" +
+						"((?<cmd1p>\\b(fd|forward|bk|backwards|rt|right|lt|left|cr|color)\\b)\\s+(?<p1>\\w+))(\\s|$)|" +
+						"(?<cmd0p>\\b(hm|home|cl|clean|cs|clearscreen|ht|hideturtle|st|showturtle|pu|penup|pd|pendown)\\b)|" +
+						"((?<repeat>\\b(rp|repeat)\\b)\\s+(?<nrep>\\d+)\\s+\\[(?<pattern>.*)\\])|" +
+						"(^(?<procName>\\w+\\b)\\s*(?<args>(\\s*\\d+)*)?$))";
+		
+		Pattern p = Pattern.compile(regex, Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL);
 		Matcher m = p.matcher(text);
 		
 		while(m.find()) {
+
+			String declProc = m.group("declProc");
 			String cmd1p = m.group("cmd1p");
 			String cmd0p = m.group("cmd0p");
 			String repeat = m.group("repeat");
+			String procName = m.group("procName");
 			
-			if(cmd1p != null) {
+			if(declProc != null) {
+				String argNames = m.group("argNames");
+				String procBody = m.group("procBody");
+				procArgs.put(declProc, Arrays.asList(argNames.split("\\s")));
+				procedures.put(declProc, procBody);
+				
+			} else if(cmd1p != null) {
 				String n = m.group("p1");
 				try {
 					actions.get(cmd1p.toLowerCase()).invoke(null, t, n);
 				} catch (IllegalAccessException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				} catch (IllegalArgumentException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				} catch (InvocationTargetException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			} else if(cmd0p != null) {
 				try {
 					actions.get(cmd0p).invoke(null, t);
 				} catch (IllegalAccessException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				} catch (IllegalArgumentException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				} catch (InvocationTargetException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			} else if(repeat != null) {
@@ -175,15 +187,35 @@ public class Parser {
 				try {
 					actions.get(repeat).invoke(null, t, n, pattern);
 				} catch (IllegalAccessException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				} catch (IllegalArgumentException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				} catch (InvocationTargetException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
+			} else if(procName != null) {
+				// GET ARGS
+				String[] arguments = m.group("args").split("\\s+");
+				String procBody = procedures.get(procName);				
+				List<String> argNames = procArgs.get(procName);
+				
+				if(procBody == null) {
+					// Procedure doesn't exist
+					break;
+				}
+				
+				if(arguments.length != argNames.size()) {
+					// Wrong number of arguments
+					break;
+				}
+				
+				for(int i = 0; i < argNames.size(); i++) {
+					String argName = argNames.get(i);
+					String argValue = arguments[i];
+					procBody = procBody.replaceAll(argName, " " + argValue + " ");
+				}
+				Parser.parse(t, procBody);
+				
 			}
 		}
 		
