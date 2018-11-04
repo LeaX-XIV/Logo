@@ -14,6 +14,8 @@ import javax.swing.JTextArea;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import java.awt.Font;
+import java.awt.Color;
 
 public class Window extends JFrame {
 	
@@ -29,7 +31,7 @@ public class Window extends JFrame {
 		super("LOGO");
 		super.setBounds(100, 100, 500, 500);
 		super.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		getContentPane().setLayout(new GridLayout(1, 2, 20, 20));
+		getContentPane().setLayout(new GridLayout(1, 2));
 		
 		scroll = new JScrollPane();
 		scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
@@ -44,6 +46,7 @@ public class Window extends JFrame {
 	        	Parser.parse(t, text);
 			}
 		};
+		canvasPanel.setBackground(Color.WHITE);
 		super.addComponentListener(new ComponentAdapter() {
 		    public void componentResized(ComponentEvent componentEvent) {
 		        canvasPanel.repaint();
@@ -53,6 +56,11 @@ public class Window extends JFrame {
 		getContentPane().add(canvasPanel);
 		
 		commands = new JTextArea();
+		commands.setSelectedTextColor(Color.DARK_GRAY);
+		commands.setSelectionColor(Color.LIGHT_GRAY);
+		commands.setForeground(Color.LIGHT_GRAY);
+		commands.setBackground(Color.DARK_GRAY);
+		commands.setFont(new Font("Monospaced", Font.BOLD, 24));
 		commands.setTabSize(4);
 		commands.setWrapStyleWord(true);
 		commands.setLineWrap(true);
