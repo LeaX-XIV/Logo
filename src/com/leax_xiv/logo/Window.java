@@ -26,6 +26,7 @@ public class Window extends JFrame {
 	private JPanel canvasPanel;
 	
 	Turtle t;
+	Parser p;
 	
 	public Window() {
 		super("LOGO");
@@ -41,9 +42,10 @@ public class Window extends JFrame {
 			protected void paintComponent(Graphics g) {
 				super.paintComponent(g);
 				
-				t = new Turtle(g, canvasPanel.getWidth(), canvasPanel.getHeight());				
+				t = new Turtle(g, canvasPanel.getWidth(), canvasPanel.getHeight());	
+				p = new Parser(t);
 				String text = commands.getText();
-	        	Parser.parse(t, text);
+	        	p.parse(text);
 			}
 		};
 		canvasPanel.setBackground(Color.WHITE);
