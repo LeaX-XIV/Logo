@@ -3,12 +3,18 @@ package com.leax_xiv.logo;
 import java.awt.Color;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
 
 public class Parser {
 	
@@ -19,35 +25,26 @@ public class Parser {
 	Map<String, List<String>> procArgs = new HashMap<>();
 	
 	String procedureDeclarationRegex = "^\\s*(TO (?<declProc>\\w+)\\s+(?<argNames>(\\s*\\:\\w+\\b)*)(\\s|$)(?<procBody>.+?)END)";
-	String oneParamRegex  = "^\\s*((?<cmd1p>\\b(fd|forward|bk|backwards|rt|right|lt|left|cr|color)\\b)\\s+(?<p1>\\w+))(\\s|$)";
-	String zeroParamRegex = "^\\s*(?<cmd0p>\\b(hm|home|cl|clean|cs|clearscreen|ht|hideturtle|st|showturtle|pu|penup|pd|pendown)\\b)";
-	String repeatRegex = "^\\s*((?<repeat>\\b(rp|repeat)\\b)\\s+(?<nrep>\\d+)\\s+\\[(?<pattern>.*)\\])";
-	String procedureCallRegex = "^\\s*((?<procName>\\w+\\b)\\s*(?<args>(\\s*\\d+)*)?$)";
 	
 	Pattern p1 = Pattern.compile(procedureDeclarationRegex, Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.MULTILINE);
-	Pattern p2 = Pattern.compile(oneParamRegex, Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.MULTILINE);
-	Pattern p3 = Pattern.compile(zeroParamRegex, Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.MULTILINE);
-	Pattern p4 = Pattern.compile(repeatRegex, Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.MULTILINE);
-	Pattern p5 = Pattern.compile(procedureCallRegex, Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.MULTILINE);
+
 	
-	
-	
-	private void forward(final String n) {
-		t.move(Integer.parseInt(n));
+	private void forward(final Integer n) {
+		t.move(n);
 	}
 	
 	@SuppressWarnings("unused")
-	private void backwards(final String n) {
-		this.forward("-" + n);
+	private void backwards(final Integer n) {
+		this.forward(-n);
 	}
 	
-	private void right(final String n) {
-		t.rotate(Integer.parseInt(n));
+	private void right(final Integer n) {
+		t.rotate(n);
 	}
 	
 	@SuppressWarnings("unused")
-	private void left(final String n) {
-		this.right("-" + n);
+	private void left(final Integer n) {
+		this.right(-n);
 	}
 	
 	@SuppressWarnings("unused")
@@ -104,14 +101,14 @@ public class Parser {
 	static {
 		actions = new HashMap<>();
 		try {
-			actions.put("fd", Parser.class.getDeclaredMethod("forward", String.class));
-			actions.put("forward", Parser.class.getDeclaredMethod("forward", String.class));
-			actions.put("bk", Parser.class.getDeclaredMethod("backwards", String.class));
-			actions.put("backwards", Parser.class.getDeclaredMethod("backwards", String.class));
-			actions.put("rt", Parser.class.getDeclaredMethod("right", String.class));
-			actions.put("right", Parser.class.getDeclaredMethod("right", String.class));
-			actions.put("lt", Parser.class.getDeclaredMethod("left", String.class));
-			actions.put("left", Parser.class.getDeclaredMethod("left", String.class));
+			actions.put("fd", Parser.class.getDeclaredMethod("forward", Integer.class));
+			actions.put("forward", Parser.class.getDeclaredMethod("forward", Integer.class));
+			actions.put("bk", Parser.class.getDeclaredMethod("backwards", Integer.class));
+			actions.put("backwards", Parser.class.getDeclaredMethod("backwards", Integer.class));
+			actions.put("rt", Parser.class.getDeclaredMethod("right", Integer.class));
+			actions.put("right", Parser.class.getDeclaredMethod("right", Integer.class));
+			actions.put("lt", Parser.class.getDeclaredMethod("left", Integer.class));
+			actions.put("left", Parser.class.getDeclaredMethod("left", Integer.class));
 			actions.put("cr", Parser.class.getDeclaredMethod("color", String.class));
 			actions.put("color", Parser.class.getDeclaredMethod("color", String.class));
 			actions.put("hm", Parser.class.getDeclaredMethod("home"));
@@ -155,8 +152,22 @@ public class Parser {
 		this.t = t;
 	}
 	
-	public void parse(String text) {		
+	public void parse(String text) {
+		// Add declared procedures to map
+		text = populateProcedures(text);
+		List<Token> tokens = extractTokens(text);
 		
+//		for (Token token : tokens) {
+//			System.out.println(token + ", ");
+//		}
+		
+		while(tokens.size() > 0) {
+			expandTokens(tokens);
+		}
+		t.drawHead();
+	}
+	
+	private String populateProcedures(String text) {
 		int del = 0;
 		Matcher m = p1.matcher(text);
 		while(m.find()) {	// Save all procedure declarations
@@ -169,91 +180,228 @@ public class Parser {
 			del += m.end() - m.start() + 1;
 		}
 		
-		while(!text.trim().isEmpty()) {
-			m = p2.matcher(text);
-			if(m.find()) {
-				String cmd1p = m.group("cmd1p");
-				String n = m.group("p1");
-				try {
-					actions.get(cmd1p.toLowerCase()).invoke(this, n);
-					text = text.substring(0, m.start()).concat(text.substring(m.end()));
-					continue;
-				} catch (IllegalAccessException e) {
-					e.printStackTrace();
-				} catch (IllegalArgumentException e) {
-					e.printStackTrace();
-				} catch (InvocationTargetException e) {
-					e.printStackTrace();
-				}
-			}
+		// Return text without procedure declarations
+		return text;
+	}
+	
+	private List<Token> extractTokens(final String text) {
+		StringBuilder buffer = new StringBuilder(text);
+		List<Token> tokens = new ArrayList<>();
+		StringBuilder token = new StringBuilder();
+		
+		String[] patterns = new String[] {
+				"[A-Za-z]",
+				"\\d",
+				"\\+",
+				"\\-",
+				"\\*",
+				"\\/",
+				"\\[",
+				"\\]",
+				"\\s"
+		};
+		int lastMatched = -1;
+		
+		while(buffer.length() > 0) {
+			char c = buffer.charAt(0);
+			buffer.deleteCharAt(0);
 			
-			m = p3.matcher(text);
-			if(m.find()) {
-				String cmd0p = m.group("cmd0p");
-				try {
-					actions.get(cmd0p).invoke(this);
-					text = text.substring(0, m.start()).concat(text.substring(m.end()));
-					continue;
-				} catch (IllegalAccessException e) {
-					e.printStackTrace();
-				} catch (IllegalArgumentException e) {
-					e.printStackTrace();
-				} catch (InvocationTargetException e) {
-					e.printStackTrace();
+			if(lastMatched >= 0 && Pattern.matches(patterns[lastMatched], ""+c)) {
+				token.append(c);
+			} else {
+				// New token
+				if(lastMatched >= 0) {
+					// Save previous token, if exists
+					if(lastMatched < patterns.length - 1) {
+						// Don't save whitespace
+						Token t;
+						if(lastMatched == 0) {	// Reference
+							t = new Token(token.toString());
+						} else if(lastMatched == 1) {	// Number
+							t = new Token(Integer.parseInt(token.toString()));
+						} else {
+							t = new Token(TokenType.values()[lastMatched]);
+						}
+						tokens.add(t);
+					}
+					token = new StringBuilder();
 				}
-			}
-			
-			m = p4.matcher(text);
-			if(m.find()) {
-				String repeat = m.group("repeat");
-				int n = Integer.parseInt(m.group("nrep"));
-				String pattern = m.group("pattern");
-				try {
-					actions.get(repeat).invoke(this, n, pattern);
-					text = text.substring(0, m.start()).concat(text.substring(m.end()));
-					continue;
-				} catch (IllegalAccessException e) {
-					e.printStackTrace();
-				} catch (IllegalArgumentException e) {
-					e.printStackTrace();
-				} catch (InvocationTargetException e) {
-					e.printStackTrace();
-				}
-			}
-			
-			m = p5.matcher(text);
-			if(m.find()) {
-				String procName = m.group("procName");
-				// GET ARGS
-				String[] arguments = m.group("args").split("\\s+");
-				String procBody = procedures.get(procName);				
-				List<String> argNames = procArgs.get(procName);
-				
-				if(procBody == null) {
-					// Procedure doesn't exist
-					break;
-				}
-				
-				if(arguments.length != argNames.size()) {
-					// Wrong number of arguments
-					break;
-				}
-				
-				for(int i = 0; i < argNames.size(); i++) {
-					String argName = argNames.get(i);
-					String argValue = arguments[i];
-					if(!argName.equals(null) && !argName.equals("")) {
-						procBody = procBody.replaceAll(argName, " " + argValue + " ");
+				for(int i = 0; i < patterns.length; i++) {
+					String pattern = patterns[i];
+					if(Pattern.matches(pattern, ""+c)) {
+						token.append(c);
+						lastMatched = i;
+						break;
 					}
 				}
-				this.parse(procBody);
-				text = text.substring(0, m.start()).concat(text.substring(m.end()));
-				continue;
+			}
+		}
+		
+		// Save last token
+		if(lastMatched >= 0) {
+			// Save previous token, if exists
+			if(lastMatched < patterns.length - 1) {
+				// Don't save whitespace
+				Token t;
+				if(lastMatched == 0) {	// Reference
+					t = new Token(token.toString());
+				} else if(lastMatched == 1) {	// Number
+					t = new Token(Integer.parseInt(token.toString()));
+				} else {
+					t = new Token(TokenType.values()[lastMatched]);
+				}
+				tokens.add(t);
+			}
+			token = new StringBuilder();
+		}
+		return tokens;
+	}
+	
+	private Token expandTokens(List<Token> tokens) {		
+		Token t = tokens.remove(0);
+		
+		switch(t.getType()) {
+		case REFERENCE: {
+			String function = t.getString();
+			if(actions.containsKey(function)) {
+				Method m = actions.get(function);
+				int numArgs = m.getParameterCount();
+				List<Token> args = new ArrayList<>(numArgs);
+				for(int i = 0; i < numArgs; i++) {
+					args.add(expandTokens(tokens));
+				}
+				// Execute and exit
+				
+				Object[] argv = new Object[numArgs];
+				for(int i = 0; i < numArgs; i++) {
+					Token token = args.get(i);
+					if(token.requireString()) {
+						argv[i] = token.getString();
+					} else if(token.requireNumber()) {
+						argv[i] = token.getNumber();
+					}
+				}
+				try {
+					m.invoke(this, argv);
+				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+				
+				
+			} else if(procedures.containsKey(function)) {
+				String body = procedures.get(function);
+				List<String> argNames = procArgs.get(function);
+				int numArgs = argNames.size();
+				List<Token> args = new ArrayList<>(numArgs);
+				for(int i = 0; i < numArgs; i++) {
+					args.add(expandTokens(tokens));
+				}
+				for(int i = 0; i < argNames.size(); i++) {
+					String argName = argNames.get(i);
+					Token argToken = args.get(i);
+					String argValue = "";
+					if(argToken.requireString()) {
+						argValue = argToken.getString();
+					} else if(argToken.requireNumber()) {
+						argValue = "" + argToken.getNumber();
+					}
+					if(!argName.equals(null) && !argName.equals("")) {
+						body = body.replaceAll(argName, " " + argValue + " ");
+					}
+				}
+				List<Token> equivalent = extractTokens(body);
+				tokens.addAll(0, equivalent);
+				// Exit
+			} else if(colors.containsKey(function)) {
+				return new Token(TokenType.STRING, t.getString());
+			}
+		} break;
+		case NUMBER: {
+			Integer result;
+			
+			List<Token> expression = new ArrayList<>();
+			// Create a math expression with consecutive numbers and operators
+			expression.add(t);
+			while(tokens.size() > 0) {
+				if(tokens.get(0).getType().equals(TokenType.PLUS) ||
+						tokens.get(0).getType().equals(TokenType.MINUS) ||
+						tokens.get(0).getType().equals(TokenType.ASTERISK) ||
+						tokens.get(0).getType().equals(TokenType.SLASH)) {
+					
+					if(tokens.get(1).getType().equals(TokenType.NUMBER)) {
+						expression.add(tokens.remove(0));
+						expression.add(tokens.remove(0));
+					} else {
+						break;
+					}
+				} else {
+					break;
+				}
+			}
+			// Evaluate the expression down to a single token
+			StringBuilder sb = new StringBuilder();
+			for(Token token : expression) {
+				if(token.getType().equals(TokenType.NUMBER)) {
+					sb.append(token.getNumber());
+				} else if(token.getType().equals(TokenType.PLUS)) {
+					sb.append('+');
+				} else if(token.getType().equals(TokenType.MINUS)) {
+					sb.append('-');
+				} else if(token.getType().equals(TokenType.ASTERISK)) {
+					sb.append('*');
+				} else if(token.getType().equals(TokenType.SLASH)) {
+					sb.append('/');
+				}
+			}
+			ScriptEngineManager mgr = new ScriptEngineManager();
+		    ScriptEngine engine = mgr.getEngineByName("JavaScript");
+		    try {
+				result = (int) Double.parseDouble("" + engine.eval(sb.toString()));
+			} catch (ScriptException e) {
+				result = new Integer(0/0);
+			}
+		    
+		    return new Token(result);
+		}
+		case PLUS:
+		case MINUS: {	// Add a preceding zero
+			tokens.add(0, t);
+			tokens.add(0, new Token(0));
+			// Exit
+		} break;
+		case LEFT_BRACKET: {
+			int level = 1;
+			StringBuilder sb = new StringBuilder();
+			while(level > 0 && tokens.size() > 0) {
+				Token token = tokens.remove(0);
+				if(token.requireString()) {
+					sb.append(token.getString());
+				} else if(token.requireNumber()) {
+					sb.append(token.getNumber());
+				} else if(token.getType().equals(TokenType.PLUS)) {
+					sb.append('+');
+				} else if(token.getType().equals(TokenType.MINUS)) {
+					sb.append('-');
+				} else if(token.getType().equals(TokenType.ASTERISK)) {
+					sb.append('*');
+				} else if(token.getType().equals(TokenType.SLASH)) {
+					sb.append('/');
+				} else if(token.getType().equals(TokenType.LEFT_BRACKET)) {
+					level++;
+					sb.append('[');
+				} else if(token.getType().equals(TokenType.RIGHT_BRACKET)) {
+					if(--level == 0) {
+						return new Token(TokenType.STRING, sb.toString());
+					}
+					sb.append(']');
+				}
 			}
 			
-			break;
 		}
-		t.drawHead();
+		}
+		
+		return null;
 	}
-
 }

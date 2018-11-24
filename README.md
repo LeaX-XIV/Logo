@@ -1,2 +1,2 @@
 # Logo
-Java interpreter for Logo language programmed overnight
+Java interpreter for Logo language
