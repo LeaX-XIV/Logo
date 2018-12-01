@@ -1,14 +1,16 @@
 package com.leax_xiv.logo;
 
 import java.awt.Color;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,16 +20,78 @@ import javax.script.ScriptException;
 
 public class Parser {
 	
-	static Map<String, Method> actions;
-	static Map<String, Color> colors;
+	private static Map<String, Method> actions;
+	private static Map<String, Color> colors;
+	private static String procedureDeclarationRegex;
+	private static Pattern p1;
 	
-	Map<String, String> procedures = new HashMap<>();
-	Map<String, List<String>> procArgs = new HashMap<>();
+	private Map<String, String> procedures = new HashMap<>();
+	private Map<String, List<String>> procArgs = new HashMap<>();
 	
-	String procedureDeclarationRegex = "^\\s*(TO (?<declProc>\\w+)\\s+(?<argNames>(\\s*\\:\\w+\\b)*)(\\s|$)(?<procBody>.+?)END)";
+	static {
+		init();
+	}
 	
-	Pattern p1 = Pattern.compile(procedureDeclarationRegex, Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.MULTILINE);
-
+	private static void init() {
+		 actions = new HashMap<>();
+		 colors = new HashMap<>();
+		
+		try(InputStream stream = Parser.class.getResourceAsStream("/IT-it.properties")) {
+			Properties p = new Properties();
+			p.load(stream);
+			actions.put(p.getProperty("fd"), Parser.class.getDeclaredMethod("forward", Integer.class));
+			actions.put(p.getProperty("fd_short"), Parser.class.getDeclaredMethod("forward", Integer.class));
+			actions.put(p.getProperty("bk"), Parser.class.getDeclaredMethod("backwards", Integer.class));
+			actions.put(p.getProperty("bk_short"), Parser.class.getDeclaredMethod("backwards", Integer.class));
+			actions.put(p.getProperty("rt"), Parser.class.getDeclaredMethod("right", Integer.class));
+			actions.put(p.getProperty("rt_short"), Parser.class.getDeclaredMethod("right", Integer.class));
+			actions.put(p.getProperty("lt"), Parser.class.getDeclaredMethod("left", Integer.class));
+			actions.put(p.getProperty("lt_short"), Parser.class.getDeclaredMethod("left", Integer.class));
+			actions.put(p.getProperty("cr"), Parser.class.getDeclaredMethod("color", String.class));
+			actions.put(p.getProperty("cr_short"), Parser.class.getDeclaredMethod("color", String.class));
+			actions.put(p.getProperty("hm"), Parser.class.getDeclaredMethod("home"));
+			actions.put(p.getProperty("hm_short"), Parser.class.getDeclaredMethod("home"));
+			actions.put(p.getProperty("cl"), Parser.class.getDeclaredMethod("clean"));
+			actions.put(p.getProperty("cl_short"), Parser.class.getDeclaredMethod("clean"));
+			actions.put(p.getProperty("cs"), Parser.class.getDeclaredMethod("clearScreen"));
+			actions.put(p.getProperty("cs_short"), Parser.class.getDeclaredMethod("clearScreen"));
+			actions.put(p.getProperty("ht"), Parser.class.getDeclaredMethod("hideTurtle"));
+			actions.put(p.getProperty("ht_short"), Parser.class.getDeclaredMethod("hideTurtle"));
+			actions.put(p.getProperty("st"), Parser.class.getDeclaredMethod("showTurtle"));
+			actions.put(p.getProperty("st_short"), Parser.class.getDeclaredMethod("showTurtle"));
+			actions.put(p.getProperty("pu"), Parser.class.getDeclaredMethod("penUp"));
+			actions.put(p.getProperty("pu_short"), Parser.class.getDeclaredMethod("penUp"));
+			actions.put(p.getProperty("pd"), Parser.class.getDeclaredMethod("penDown"));
+			actions.put(p.getProperty("pd_short"), Parser.class.getDeclaredMethod("penDown"));
+			actions.put(p.getProperty("rp"), Parser.class.getDeclaredMethod("repeat", Integer.class, String.class));
+			actions.put(p.getProperty("rp_short"), Parser.class.getDeclaredMethod("repeat", Integer.class, String.class));
+			
+			
+			colors.put(p.getProperty("black"), Color.BLACK);
+			colors.put(p.getProperty("blue"), Color.BLUE);
+			colors.put(p.getProperty("gray"), Color.GRAY);
+			colors.put(p.getProperty("green"), Color.GREEN);
+			colors.put(p.getProperty("orange"), Color.ORANGE);
+			colors.put(p.getProperty("pink"), Color.PINK);
+			colors.put(p.getProperty("red"), Color.RED);
+			colors.put(p.getProperty("white"), Color.WHITE);
+			colors.put(p.getProperty("yellow"), Color.YELLOW);
+			
+			String to = p.getProperty("to");
+			String toShort = p.getProperty("to_short");
+			
+			String end = p.getProperty("end");
+			String endShort = p.getProperty("end_short");
+			procedureDeclarationRegex = "^\\s*((" + to + "|" + toShort + ") (?<declProc>\\w+)\\s+(?<argNames>(\\s*\\:\\w+\\b)*)(\\s|$)(?<procBody>.+?)(" + end + "|" + endShort + "))";
+			p1 = Pattern.compile(procedureDeclarationRegex, Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.MULTILINE);
+		} catch (NoSuchMethodException | SecurityException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+	}
 	
 	private void forward(final Integer n) {
 		t.move(n);
@@ -112,55 +176,6 @@ public class Parser {
 //		}
 //		
 //		return repeated;
-	}
-	
-	static {
-		actions = new HashMap<>();
-		try {
-			actions.put("fd", Parser.class.getDeclaredMethod("forward", Integer.class));
-			actions.put("forward", Parser.class.getDeclaredMethod("forward", Integer.class));
-			actions.put("bk", Parser.class.getDeclaredMethod("backwards", Integer.class));
-			actions.put("backwards", Parser.class.getDeclaredMethod("backwards", Integer.class));
-			actions.put("rt", Parser.class.getDeclaredMethod("right", Integer.class));
-			actions.put("right", Parser.class.getDeclaredMethod("right", Integer.class));
-			actions.put("lt", Parser.class.getDeclaredMethod("left", Integer.class));
-			actions.put("left", Parser.class.getDeclaredMethod("left", Integer.class));
-			actions.put("cr", Parser.class.getDeclaredMethod("color", String.class));
-			actions.put("color", Parser.class.getDeclaredMethod("color", String.class));
-			actions.put("hm", Parser.class.getDeclaredMethod("home"));
-			actions.put("home", Parser.class.getDeclaredMethod("home"));
-			actions.put("cl", Parser.class.getDeclaredMethod("clean"));
-			actions.put("clean", Parser.class.getDeclaredMethod("clean"));
-			actions.put("cs", Parser.class.getDeclaredMethod("clearScreen"));
-			actions.put("clearscreen", Parser.class.getDeclaredMethod("clearScreen"));
-			actions.put("ht", Parser.class.getDeclaredMethod("hideTurtle"));
-			actions.put("hideturtle", Parser.class.getDeclaredMethod("hideTurtle"));
-			actions.put("st", Parser.class.getDeclaredMethod("showTurtle"));
-			actions.put("showturtle", Parser.class.getDeclaredMethod("showTurtle"));
-			actions.put("pu", Parser.class.getDeclaredMethod("penUp"));
-			actions.put("penup", Parser.class.getDeclaredMethod("penUp"));
-			actions.put("pd", Parser.class.getDeclaredMethod("penDown"));
-			actions.put("pendown", Parser.class.getDeclaredMethod("penDown"));
-			actions.put("rp", Parser.class.getDeclaredMethod("repeat", Integer.class, String.class));
-			actions.put("repeat", Parser.class.getDeclaredMethod("repeat", Integer.class, String.class));
-		} catch (NoSuchMethodException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		colors = new HashMap<>();
-		colors.put("black", Color.BLACK);
-		colors.put("blue", Color.BLUE);
-		colors.put("gray", Color.GRAY);
-		colors.put("green", Color.GREEN);
-		colors.put("orange", Color.ORANGE);
-		colors.put("pink", Color.PINK);
-		colors.put("red", Color.RED);
-		colors.put("white", Color.WHITE);
-		colors.put("yellow", Color.YELLOW);
 	}
 	
 	private Turtle t;
