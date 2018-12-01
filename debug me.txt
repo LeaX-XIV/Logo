@@ -1,0 +1,17 @@
+to star :length
+	repeat 5 [fd :length rt 144]
+end
+
+repeat 40 [
+star 300
+rt 9
+]
+pu
+color red
+rt 45
+fd 180
+pd
+repeat 40 [
+star 300
+rt 9
+]
