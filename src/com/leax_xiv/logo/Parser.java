@@ -86,16 +86,32 @@ public class Parser {
 	
 	@SuppressWarnings("unused")
 	private void repeat(final Integer n, final String pattern) {
-		boolean shown = t.isShowHead();
-		this.hideTurtle();
+//		boolean shown = t.isShowHead();
+//		this.hideTurtle();
+//		for(int i = 0; i < n; i++) {
+//			this.parse(pattern);
+//		}
+//		if(shown) {
+//			this.showTurtle(); 
+//		} else {
+//			this.hideTurtle();
+//		}
+		
+//		List<Token> repeated = new ArrayList<>();
+		final List<Token> expanded = this.extractTokens(pattern);
+		List<Token> foo;
 		for(int i = 0; i < n; i++) {
-			this.parse(pattern);
+			foo = new ArrayList<>(expanded);
+			while(foo.size() > 0) {
+				this.expandTokens(foo);
+			}
+			
 		}
-		if(shown) {
-			this.showTurtle(); 
-		} else {
-			this.hideTurtle();
-		}
+//		for(int i = 0; i < n; i++) {
+//			repeated.addAll(expanded);
+//		}
+//		
+//		return repeated;
 	}
 	
 	static {
@@ -164,7 +180,6 @@ public class Parser {
 		while(tokens.size() > 0) {
 			expandTokens(tokens);
 		}
-		t.drawHead();
 	}
 	
 	private String populateProcedures(String text) {
@@ -270,8 +285,8 @@ public class Parser {
 				for(int i = 0; i < numArgs; i++) {
 					args.add(expandTokens(tokens));
 				}
-				// Execute and exit
 				
+				// Execute and exit
 				Object[] argv = new Object[numArgs];
 				for(int i = 0; i < numArgs; i++) {
 					Token token = args.get(i);
@@ -281,13 +296,13 @@ public class Parser {
 						argv[i] = token.getNumber();
 					}
 				}
+				
 				try {
 					m.invoke(this, argv);
 				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				
 				
 				
 			} else if(procedures.containsKey(function)) {
@@ -399,6 +414,9 @@ public class Parser {
 				}
 			}
 			
+		}
+		default: {
+			throw new IllegalArgumentException("");
 		}
 		}
 		

@@ -45,7 +45,13 @@ public class Window extends JFrame {
 				t = new Turtle(g, canvasPanel.getWidth(), canvasPanel.getHeight());	
 				p = new Parser(t);
 				String text = commands.getText();
-	        	p.parse(text);
+				try {
+					p.parse(text);
+				} catch(Exception e) {
+					e.printStackTrace();
+				}
+
+				t.drawHead();
 			}
 		};
 		canvasPanel.setBackground(Color.WHITE);
